@@ -1,1 +1,28 @@
 .env
+.env.*
+!.env.example
+config.env
+config.env.*
+!config.env.example
+
+# Credentials and local secrets
+credentials*.json
+service-account*.json
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+env/
+
+# Runtime data
+temp_notes/
+vault/
+
+# Local tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
