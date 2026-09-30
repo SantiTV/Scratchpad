@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scratchpad // Markdown Sync</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-base: #121417;
+            --bg-surface: #1A1D23;
+            --border-color: #2D323B;
+            --text-primary: #E2E8F0;
+            --text-muted: #94A3B8;
+            --accent: #81A1C1;
+            --accent-hover: #A3BABD;
+            
+            --font-ui: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-ui);
+            height: 100vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Layout Structure */
+        .app-container {
+            display: grid;
+            grid-template-columns: 300px 1fr 260px;
+            height: 100vh;
+        }
+
+        /* Sidebar (Archive) */
+        .sidebar {
+            background-color: var(--bg-surface);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .sidebar-header {
+            padding: 1.5rem 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .search-input {
+            width: 100%;
+            background: var(--bg-base);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem;
+            font-family: var(--font-ui);
+            font-size: 0.875rem;
+            outline: none;
+        }
+
+        .search-input:focus {
+            border-color: var(--accent);
+        }
+
+        .notes-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem 0;
+        }
+
+        .note-item {
+            display: flex;
+            align-items: flex-start;
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 1px solid transparent;
+            transition: background 0.1s ease;
+        }
+
+        .note-item:hover {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .note-item.active {
+            background: rgba(129, 161, 193, 0.1);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .note-item input[type="checkbox"] {
+            margin-right: 1rem;
+            margin-top: 0.2rem;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .note-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+            overflow: hidden;
+        }
+
+        .note-title {
+            font-size: 0.9rem;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .note-date {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: var(--font-mono);
+        }
+
+        /* Main Editor */
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-base);
+        }
+
+        #editor {
+            flex: 1;
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            padding: 2rem;
+            font-family: var(--font-mono);
+            font-size: 1rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+        }
+
+        /* Sync Panel */
+        .sync-panel {
+            background-color: var(--bg-surface);
+            border-left: 1px solid var(--border-color);
+            padding: 1.5rem 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .panel-section h3 {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .destination-option {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+            font-size: 0.875rem;
+        }
+
+        .destination-option input {
+            accent-color: var(--accent);
+        }
+
+        .btn-sync {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--accent);
+            color: var(--bg-base);
+            border: none;
+            font-family: var(--font-ui);
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+        }
+
+        .btn-sync:hover {
+            background-color: var(--accent-hover);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: var(--border-color);
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: var(--text-muted);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container">
+        <!-- Left Rail: Archive -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <input type="text" class="search-input" placeholder="Search notes...">
+            </div>
+            <div class="notes-list" id="notesList">
+                <!-- Note items will be injected here -->
+            </div>
+        </aside>
+
+        <!-- Center Stage: Editor -->
+        <main class="editor-container">
+            <textarea id="editor" placeholder="Start typing your markdown..."></textarea>
+        </main>
+
+        <!-- Right Rail: Sync Panel -->
+        <aside class="sync-panel">
+            <div class="panel-section">
+                <h3>Destinations</h3>
+                <label class="destination-option">
+                    <input type="checkbox" id="syncObsidian" checked>
+                    <span>Obsidian Vault</span>
+                </label>
+                <label class="destination-option">
+                    <input type="checkbox" id="syncGDrive">
+                    <span>Google Drive</span>
+                </label>
+            </div>
+
+            <div class="panel-section">
+                <button class="btn-sync" id="syncBtn">Sync Selected</button>
+            </div>
+        </aside>
+    </div>
+
+    <script>
+        // Mock data for demonstration
+        const mockNotes = [
+            { id: 1, title: "Project Architecture", date: "2023-10-27 14:20", content: "# Project Architecture\n- Use Python standard lib\n- No FastAPI\n- Markdown based" },
+            { id: 2, title: "Meeting Notes", date: "2023-10-26 09:15", content: "# Meeting Notes\n- Sync logic clarified\n- Local folder path needed" },
+            { id: 3, title: "Quick Ideas", date: "2023-10-25 22:10", content: "# Ideas\n- Add keyboard shortcuts\n- Vim mode?" },
+        ];
+
+        const notesList = document.getElementById('notesList');
+        const editor = document.getElementById('editor');
+
+        function renderNotes() {
+            notesList.innerHTML = mockNotes.map(note => `
+                <div class="note-item ${note.id === 1 ? 'active' : ''}" onclick="loadNote(${note.id})">
+                    <input type="checkbox" onclick="event.stopPropagation()">
+                    <div class="note-meta">
+                        <div class="note-title">${note.title}</div>
+                        <div class="note-date">${note.date}</div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        window.loadNote = (id) => {
+            const note = mockNotes.find(n => n.id === id);
+            if (note) {
+                editor.value = note.content;
+                document.querySelectorAll('.note-item').forEach((el, idx) => {
+                    el.classList.toggle('active', (idx + 1) === id);
+                });
+            }
+        };
+
+        // Init
+        renderNotes();
+        loadNote(1);
+    </script>
+</body>
+</html>
