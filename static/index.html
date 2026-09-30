@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Sync Pad</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #fcfcfc; }
+        textarea { outline: none; resize: none; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
+    </style>
+</head>
+<body class="h-screen flex p-4 md:p-8 gap-6">
+
+    <!-- Left Panel: Note Editor -->
+    <div class="flex-1 flex flex-col gap-4">
+        <div class="flex justify-between items-center">
+            <input id="noteTitle" type="text" placeholder="Note Title..." class="text-2xl font-bold bg-transparent border-none outline-none w-full mr-4">
+            <button id="saveBtn" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-all">Save Locally</button>
+        </div>
+        <textarea id="editor" class="flex-1 w-full p-4 text-lg leading-relaxed text-gray-800 bg-white border border-gray-200 rounded-xl shadow-sm" placeholder="Write your markdown here..."></textarea>
+    </div>
+
+    <!-- Right Panel: Selection & Sync -->
+    <div class="w-80 flex flex-col gap-6 bg-white border border-gray-200 p-6 rounded-xl shadow-sm">
+        <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Captured Notes</h2>
+        
+        <div id="fileList" class="flex-1 overflow-y-auto custom-scrollbar space-y-2">
+            <!-- Files will appear here -->
+        </div>
+
+        <div class="border-t pt-4 space-y-4">
+            <div class="flex flex-col gap-2">
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" id="syncLocal" class="rounded text-indigo-600"> Sync to Obsidian
+                </label>
+                <label class="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" id="syncCloud" class="rounded text-indigo-600"> Sync to Google Drive
+                </label>
+            </div>
+            <button id="syncBtn" class="w-full bg-black text-white py-3 rounded-lg font-medium hover:bg-gray-800 transition-all active:scale-95">
+                Sync Selected
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const editor = document.getElementById('editor');
+        const noteTitle = document.getElementById('noteTitle');
+        const saveBtn = document.getElementById('saveBtn');
+        const fileList = document.getElementById('fileList');
+        const syncBtn = document.getElementById('syncBtn');
+        const syncLocal = document.getElementById('syncLocal');
+        const syncCloud = document.getElementById('syncCloud');
+
+        async function loadFiles() {
+            const res = await fetch('/list');
+            const data = await res.json();
+            fileList.innerHTML = '';
+            data.files.forEach(file => {
+                const div = document.createElement('div');
+                div.className = "flex items-center gap-3 p-2 hover:bg-gray-50 rounded-md border border-transparent hover:border-gray-100 transition-all";
+                div.innerHTML = `
+                    <input type="checkbox" value="${file}" class="file-checkbox rounded text-indigo-600">
+                    <span class="text-sm text-gray-700 truncate">${file}</span>
+                `;
+                fileList.appendChild(div);
+            });
+        }
+
+        saveBtn.onclick = async () => {
+            const content = editor.value;
+            const title = noteTitle.value || 'Untitled';
+            if (!content) return alert("Please enter some content");
+
+            await fetch('/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content, title })
+            });
+            
+            noteTitle.value = '';
+            editor.value = '';
+            loadFiles();
+        };
+
+        syncBtn.onclick = async () => {
+            const selectedFiles = Array.from(document.querySelectorAll('.file-checkbox:checked')).map(cb => cb.value);
+            const targets = [];
+            if (syncLocal.checked) targets.push('local');
+            if (syncCloud.checked) targets.push('cloud');
+
+            if (selectedFiles.length === 0) return alert("Select at least one file to sync");
+            if (targets.length === 0) return alert("Select at least one sync target");
+
+            syncBtn.disabled = true;
+            syncBtn.innerText = "Syncing...";
+
+            const res = await fetch('/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ files: selectedFiles, targets })
+            });
+            const result = await res.json();
+            
+            alert(`Sync Complete!\nLocal: ${result.local.length} files\nCloud: ${result.cloud.length} files`);
+            
+            syncBtn.disabled = false;
+            syncBtn.innerText = "Sync Selected";
+            loadFiles();
+        };
+
+        loadFiles();
+    </script>
+</body>
+</html>
